@@ -10,13 +10,12 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Danh sách Tài khoản
 const staffUsers = [
   { username: "kitchen", password: "123", role: "kitchen", name: "Nhà Bếp Canteen" },
   { username: "admin", password: "123", role: "admin", name: "Quản Lý Canteen" }
 ];
 
-let studentUsers = []; // Lưu danh sách sinh viên đăng ký
+let studentUsers = [];
 
 let menu = [
   { id: 1, name: "Cơm tấm sườn nướng", price: 30000, category: "Cơm", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300", available: true },
@@ -29,33 +28,33 @@ let orders = [];
 
 // API Đăng ký Sinh viên
 app.post('/api/student/register', (req, res) => {
-  const { studentCode, email, password } = req.body;
-  if (!studentCode || !email || !password) {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
     return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin!" });
   }
 
-  const exist = studentUsers.find(s => s.studentCode === studentCode);
+  const exist = studentUsers.find(s => s.username === username);
   if (exist) {
-    return res.status(400).json({ success: false, message: "Mã sinh viên này đã được đăng ký!" });
+    return res.status(400).json({ success: false, message: "Tên tài khoản này đã được đăng ký!" });
   }
 
-  const newStudent = { studentCode, email, password };
+  const newStudent = { username, email, password };
   studentUsers.push(newStudent);
   res.json({ success: true, message: "Đăng ký thành công!" });
 });
 
 // API Đăng nhập Sinh viên
 app.post('/api/student/login', (req, res) => {
-  const { studentCode, password } = req.body;
-  const student = studentUsers.find(s => s.studentCode === studentCode && s.password === password);
+  const { username, password } = req.body;
+  const student = studentUsers.find(s => s.username === username && s.password === password);
   if (student) {
-    res.json({ success: true, student: { studentCode: student.studentCode, email: student.email } });
+    res.json({ success: true, student: { username: student.username, email: student.email } });
   } else {
-    res.status(401).json({ success: false, message: "Mã sinh viên hoặc mật khẩu không chính xác!" });
+    res.status(401).json({ success: false, message: "Tên tài khoản hoặc mật khẩu không chính xác!" });
   }
 });
 
-// API Đăng nhập Nhân viên / Bếp
+// API Đăng nhập Admin / Bếp
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   const user = staffUsers.find(u => u.username === username && u.password === password);
