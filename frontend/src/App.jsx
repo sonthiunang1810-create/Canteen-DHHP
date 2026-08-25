@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
 
 const socket = io('http://localhost:5000');
 
 // ==========================================
-// 1. GIAO DIỆN DÀNH RIÊNG CHO SINH VIÊN (URL: /)
+// 1. GIAO DIỆN SINH VIÊN (URL: /)
 // ==========================================
 function StudentView() {
+  const [isRegister, setIsRegister] = useState(false); // Chuyển đổi Đăng nhập / Đăng ký
   const [studentCode, setStudentCode] = useState('');
-  const [isLogged, setIsLogged] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  
+  const [currentStudent, setCurrentStudent] = useState(null);
   const [menu, setMenu] = useState([]);
   const [cart, setCart] = useState([]);
 
@@ -20,10 +25,28 @@ function StudentView() {
     return () => socket.off('menu_updated');
   }, []);
 
-  const handleStartOrder = (e) => {
+  // Xử lý Đăng ký
+  const handleRegister = (e) => {
     e.preventDefault();
-    if (!studentCode.trim()) return alert("Vui lòng nhập Mã Sinh Viên!");
-    setIsLogged(true);
+    axios.post('http://localhost:5000/api/student/register', { studentCode, email, password })
+      .then(() => {
+        alert("🎉 Đăng ký tài khoản thành công! Hãy đăng nhập.");
+        setIsRegister(false);
+        setPassword('');
+        setErrorMsg('');
+      })
+      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng ký!"));
+  };
+
+  // Xử lý Đăng nhập
+  const handleLogin = (e) => {
+    e.preventDefault();
+    axios.post('http://localhost:5000/api/student/login', { studentCode, password })
+      .then(res => {
+        setCurrentStudent(res.data.student);
+        setErrorMsg('');
+      })
+      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng nhập!"));
   };
 
   const addToCart = (item) => {
@@ -40,7 +63,7 @@ function StudentView() {
     const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
     
     axios.post('http://localhost:5000/api/orders', {
-      studentCode: `SV: ${studentCode}`,
+      studentCode: `SV: ${currentStudent.studentCode}`,
       items: cart,
       total: total,
       table: "Bàn QR"
@@ -50,39 +73,102 @@ function StudentView() {
     });
   };
 
-  // Màn hình 1: Nhập Mã Sinh Viên
-  if (!isLogged) {
+  // Form Đăng nhập / Đăng ký
+  if (!currentStudent) {
     return (
-      <div style={{ maxWidth: '380px', margin: '80px auto', padding: '25px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', fontFamily: 'Arial' }}>
+      <div style={{ maxWidth: '380px', margin: '60px auto', padding: '25px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', fontFamily: 'Arial' }}>
         <h2 style={{ textAlign: 'center', color: '#1e293b', marginBottom: '5px' }}>🎓 Canteen Trường ĐH</h2>
-        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Quét mã QR gọi món tại bàn</p>
-        
-        <form onSubmit={handleStartOrder}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Mã Sinh Viên</label>
-            <input 
-              type="text" 
-              placeholder="VD: B20DCCN001" 
-              value={studentCode}
-              onChange={e => setStudentCode(e.target.value)}
-              style={{ width: '92%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-            />
-          </div>
-          <button type="submit" style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}>
-            Xem Menu & Gọi Món
-          </button>
-        </form>
+        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
+          {isRegister ? 'Tạo tài khoản sinh viên mới' : 'Đăng nhập gọi món tại bàn'}
+        </p>
+
+        {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center' }}>{errorMsg}</p>}
+
+        {isRegister ? (
+          /* FORM ĐĂNG KÝ */
+          <form onSubmit={handleRegister}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Mã Sinh Viên</label>
+              <input 
+                type="text" 
+                placeholder="VD: B20DCCN001" 
+                value={studentCode} 
+                onChange={e => setStudentCode(e.target.value)} 
+                style={{ width: '92%', padding: '10px', marginTop: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Email Sinh Viên</label>
+              <input 
+                type="email" 
+                placeholder="sv@truong.edu.vn" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                style={{ width: '92%', padding: '10px', marginTop: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Mật Khẩu</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                style={{ width: '92%', padding: '10px', marginTop: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <button type="submit" style={{ width: '100%', padding: '11px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+              Đăng Ký Tài Khoản
+            </button>
+            <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '15px' }}>
+              Đã có tài khoản? <span onClick={() => { setIsRegister(false); setErrorMsg(''); }} style={{ color: '#2563eb', cursor: 'pointer', fontWeight: 'bold' }}>Đăng nhập</span>
+            </p>
+          </form>
+        ) : (
+          /* FORM ĐĂNG NHẬP */
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Mã Sinh Viên</label>
+              <input 
+                type="text" 
+                placeholder="VD: B20DCCN001" 
+                value={studentCode} 
+                onChange={e => setStudentCode(e.target.value)} 
+                style={{ width: '92%', padding: '10px', marginTop: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Mật Khẩu</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                style={{ width: '92%', padding: '10px', marginTop: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <button type="submit" style={{ width: '100%', padding: '11px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+              Đăng Nhập Gọi Món
+            </button>
+            <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '15px' }}>
+              Chưa có tài khoản? <span onClick={() => { setIsRegister(true); setErrorMsg(''); }} style={{ color: '#2563eb', cursor: 'pointer', fontWeight: 'bold' }}>Đăng ký ngay</span>
+            </p>
+          </form>
+        )}
       </div>
     );
   }
 
-  // Màn hình 2: Chọn món & Đặt hàng
+  // Màn hình xem Menu & Giỏ hàng sau khi Login
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: 'Arial' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <span>👋 Sinh viên: <strong>{studentCode}</strong></span>
-          <button onClick={() => setIsLogged(false)} style={{ padding: '6px 12px', background: '#cbd5e1', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Đổi MSSV</button>
+          <div>
+            <span>👋 Sinh viên: <strong>{currentStudent.studentCode}</strong></span>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>{currentStudent.email}</div>
+          </div>
+          <button onClick={() => setCurrentStudent(null)} style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Đăng xuất</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
@@ -123,128 +209,7 @@ function StudentView() {
   );
 }
 
-// ==========================================
-// 2. GIAO DIỆN DÀNH RIÊNG CHO BẾP / ADMIN (URL: /admin)
-// ==========================================
-function AdminView() {
-  const [isLogged, setIsLogged] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  
-  const [menu, setMenu] = useState([]);
-  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, ordersList: [] });
-
-  useEffect(() => {
-    if (isLogged) {
-      axios.get('http://localhost:5000/api/menu').then(res => setMenu(res.data));
-      socket.on('menu_updated', updatedMenu => setMenu(updatedMenu));
-      socket.on('sales_update', newStats => setStats(newStats));
-    }
-    return () => {
-      socket.off('menu_updated');
-      socket.off('sales_update');
-    };
-  }, [isLogged]);
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    axios.post('http://localhost:5000/api/login', { username, password })
-      .then(() => { setIsLogged(true); setError(''); })
-      .catch(() => setError("Tài khoản/Mật khẩu Admin không đúng!"));
-  };
-
-  const toggleAvailable = (id, currentStatus) => {
-    axios.post('http://localhost:5000/api/menu/toggle', { id, available: !currentStatus });
-  };
-
-  // Form đăng nhập riêng biệt cho Admin
-  if (!isLogged) {
-    return (
-      <div style={{ maxWidth: '360px', margin: '80px auto', padding: '25px', background: '#0f172a', color: '#fff', borderRadius: '12px', fontFamily: 'Arial' }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>🔒 Đăng Nhập Quản Lý Bếp</h3>
-        <form onSubmit={handleLogin}>
-          <input 
-            type="text" 
-            placeholder="Tên đăng nhập (kitchen / admin)" 
-            value={username} 
-            onChange={e => setUsername(e.target.value)}
-            style={{ width: '92%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: 'none' }}
-          />
-          <input 
-            type="password" 
-            placeholder="Mật khẩu (123)" 
-            value={password} 
-            onChange={e => setPassword(e.target.value)}
-            style={{ width: '92%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: 'none' }}
-          />
-          {error && <p style={{ color: '#f87171', fontSize: '12px' }}>{error}</p>}
-          <button type="submit" style={{ width: '100%', padding: '10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Đăng Nhập</button>
-        </form>
-      </div>
-    );
-  }
-
-  // Dashboard Nhà bếp / Quản lý
-  return (
-    <div style={{ backgroundColor: '#f1f5f9', minHeight: '100vh', padding: '20px', fontFamily: 'Arial' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>📊 Dashboard Quản Lý Bếp & Doanh Số</h2>
-          <button onClick={() => setIsLogged(false)} style={{ padding: '8px 16px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Đăng xuất</button>
-        </div>
-
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-          <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px' }}>
-            <span style={{ color: '#64748b' }}>Tổng đơn đã nhận:</span>
-            <h2 style={{ margin: '5px 0 0 0', color: '#2563eb' }}>{stats.totalOrders} đơn</h2>
-          </div>
-          <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px' }}>
-            <span style={{ color: '#64748b' }}>Doanh thu Realtime:</span>
-            <h2 style={{ margin: '5px 0 0 0', color: '#16a34a' }}>{stats.totalRevenue.toLocaleString()} VNĐ</h2>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          <div style={{ background: '#fff', padding: '15px', borderRadius: '8px' }}>
-            <h3>🔔 Đơn Hàng Mới Nhận (Realtime)</h3>
-            {stats.ordersList.map(order => (
-              <div key={order.id} style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', marginBottom: '10px', border: '1px solid #cbd5e1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <span>Đơn #{order.id} - {order.studentCode}</span>
-                  <span style={{ color: '#2563eb', fontSize: '12px' }}>{order.createdAt}</span>
-                </div>
-                {order.items.map((it, i) => (
-                  <div key={i} style={{ fontSize: '13px' }}>• {it.name} x {it.qty}</div>
-                ))}
-                <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e11d48', marginTop: '5px' }}>{order.total.toLocaleString()} VNĐ</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background: '#fff', padding: '15px', borderRadius: '8px' }}>
-            <h3>🛠 Quản Lý Trạng Thái Món</h3>
-            {menu.map(item => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                <span>{item.name}</span>
-                <button 
-                  onClick={() => toggleAvailable(item.id, item.available)}
-                  style={{ padding: '4px 8px', border: 'none', borderRadius: '4px', background: item.available ? '#dcfce7' : '#fee2e2', color: item.available ? '#15803d' : '#b91c1c', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  {item.available ? '🟢 Đang bán' : '🔴 Hết món'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// 3. ĐIỀU HƯỚNG ROUTER CHÍNH
-// ==========================================
+// Cấu trúc Route giữ nguyên
 export default function App() {
   return (
     <BrowserRouter>

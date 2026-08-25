@@ -10,11 +10,13 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Danh sách Tài khoản mặc định
-const users = [
+// Danh sách Tài khoản
+const staffUsers = [
   { username: "kitchen", password: "123", role: "kitchen", name: "Nhà Bếp Canteen" },
   { username: "admin", password: "123", role: "admin", name: "Quản Lý Canteen" }
 ];
+
+let studentUsers = []; // Lưu danh sách sinh viên đăng ký
 
 let menu = [
   { id: 1, name: "Cơm tấm sườn nướng", price: 30000, category: "Cơm", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300", available: true },
@@ -25,10 +27,38 @@ let menu = [
 
 let orders = [];
 
-// API Đăng nhập
+// API Đăng ký Sinh viên
+app.post('/api/student/register', (req, res) => {
+  const { studentCode, email, password } = req.body;
+  if (!studentCode || !email || !password) {
+    return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin!" });
+  }
+
+  const exist = studentUsers.find(s => s.studentCode === studentCode);
+  if (exist) {
+    return res.status(400).json({ success: false, message: "Mã sinh viên này đã được đăng ký!" });
+  }
+
+  const newStudent = { studentCode, email, password };
+  studentUsers.push(newStudent);
+  res.json({ success: true, message: "Đăng ký thành công!" });
+});
+
+// API Đăng nhập Sinh viên
+app.post('/api/student/login', (req, res) => {
+  const { studentCode, password } = req.body;
+  const student = studentUsers.find(s => s.studentCode === studentCode && s.password === password);
+  if (student) {
+    res.json({ success: true, student: { studentCode: student.studentCode, email: student.email } });
+  } else {
+    res.status(401).json({ success: false, message: "Mã sinh viên hoặc mật khẩu không chính xác!" });
+  }
+});
+
+// API Đăng nhập Nhân viên / Bếp
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username && u.password === password);
+  const user = staffUsers.find(u => u.username === username && u.password === password);
   if (user) {
     res.json({ success: true, user: { name: user.name, role: user.role } });
   } else {
@@ -53,11 +83,10 @@ app.post('/api/menu/toggle', (req, res) => {
 app.post('/api/orders', (req, res) => {
   const newOrder = {
     id: orders.length + 1,
-    studentCode: req.body.studentCode || "Khách vãng lai",
+    studentCode: req.body.studentCode,
     items: req.body.items,
     total: req.body.total,
     table: req.body.table || "Bàn QR",
-    status: 'Đang chuẩn bị',
     createdAt: new Date().toLocaleTimeString('vi-VN')
   };
   orders.unshift(newOrder);
@@ -79,4 +108,4 @@ io.on('connection', (socket) => {
   socket.emit('sales_update', getSalesStats());
 });
 
-server.listen(5000, '0.0.0.0', () => console.log('Backend running on port 5000'));
+server.listen(5000, () => console.log('Backend running on port 5000'));
