@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-const socket = io('http://192.168.1.9:5000');
+const BACKEND_URL = 'https://canteen-dhhp.onrender.com';
+const socket = io(BACKEND_URL);
 
 function StudentView() {
   const [isRegister, setIsRegister] = useState(false);
@@ -21,31 +22,31 @@ function StudentView() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   useEffect(() => {
-    axios.get('http://192.168.1.9:5000/api/menu').then(res => setMenu(res.data)).catch(() => {});
+    axios.get(`${BACKEND_URL}/api/menu`).then(res => setMenu(res.data)).catch(() => {});
     socket.on('menu_updated', updatedMenu => setMenu(updatedMenu));
     return () => socket.off('menu_updated');
   }, []);
 
   const handleRegister = (e) => {
     e.preventDefault();
-    axios.post('http://192.168.1.9:5000/api/student/register', { username, email, password })
+    axios.post(`${BACKEND_URL}/api/student/register`, { username, email, password })
       .then(() => {
         alert("🎉 Đăng ký tài khoản thành công! Hãy đăng nhập.");
         setIsRegister(false);
         setPassword('');
         setErrorMsg('');
       })
-      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng ký!"));
+      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng ký! Không kết nối được Server."));
   };
 
   const handleLogin = (e) => {
     e.preventDefault();
-    axios.post('http://192.168.1.9:5000/api/student/login', { username, password })
+    axios.post(`${BACKEND_URL}/api/student/login`, { username, password })
       .then(res => {
         setCurrentStudent(res.data.student);
         setErrorMsg('');
       })
-      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng nhập!"));
+      .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng nhập! Tên tài khoản hoặc mật khẩu không đúng."));
   };
 
   const addToCart = (item) => {
@@ -69,7 +70,7 @@ function StudentView() {
 
   const processPayment = (paymentMethod) => {
     const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    axios.post('http://192.168.1.9:5000/api/orders', {
+    axios.post(`${BACKEND_URL}/api/orders`, {
       studentCode: `SV: ${currentStudent.username}`,
       items: cart,
       total: total,
@@ -133,8 +134,8 @@ function StudentView() {
                   <input type="text" placeholder="Nhập tên tài khoản hoặc MSSV" value={username} onChange={e => setUsername(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>EMAIL TRƯỜNG</label>
-                  <input type="email" placeholder="sv@dhhp.edu.vn" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>EMAIL</label>
+                  <input type="email" placeholder="Nhập địa chỉ email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ marginBottom: '22px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>MẬT KHẨU</label>
@@ -461,7 +462,7 @@ function AdminView() {
 
   useEffect(() => {
     if (isLogged) {
-      axios.get('http://192.168.1.9:5000/api/menu').then(res => setMenu(res.data));
+      axios.get(`${BACKEND_URL}/api/menu`).then(res => setMenu(res.data));
       socket.on('menu_updated', updatedMenu => setMenu(updatedMenu));
       socket.on('sales_update', newStats => setStats(newStats));
     }
@@ -473,17 +474,17 @@ function AdminView() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    axios.post('http://192.168.1.9:5000/api/login', { username, password })
+    axios.post(`${BACKEND_URL}/api/login`, { username, password })
       .then(() => { setIsLogged(true); setError(''); })
       .catch(() => setError("Tài khoản hoặc mật khẩu Quản lý không đúng!"));
   };
 
   const toggleAvailable = (id, currentStatus) => {
-    axios.post('http://192.168.1.9:5000/api/menu/toggle', { id, available: !currentStatus });
+    axios.post(`${BACKEND_URL}/api/menu/toggle`, { id, available: !currentStatus });
   };
 
   const toggleOrderStatus = (id) => {
-    axios.post('http://192.168.1.9:5000/api/orders/toggle-status', { id });
+    axios.post(`${BACKEND_URL}/api/orders/toggle-status`, { id });
   };
 
   if (!isLogged) {
