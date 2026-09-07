@@ -103,16 +103,16 @@ function StudentView() {
   if (!currentStudent) {
     return (
       <div style={{ 
-        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.85)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '100vh',
-        width: '100vw',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif"
-      }}>
+          backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.7)), url('/canteen-bg.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          minHeight: '100vh',
+          width: '100vw',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif"
+        }}>
         <div style={{ maxWidth: '420px', width: '90%', background: 'rgba(255, 255, 255, 0.96)', backdropFilter: 'blur(16px)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}>
           <div style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', padding: '30px 20px', textAlign: 'center', color: '#fff' }}>
             <img src="/logo-dhhp.png" alt="Logo DHHP" style={{ width: '76px', height: '76px', borderRadius: '50%', background: '#fff', padding: '5px', marginBottom: '10px', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }} />
@@ -526,7 +526,7 @@ function AdminView() {
               👨‍🍳
             </div>
             <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '22px', fontWeight: '800', letterSpacing: '0.5px' }}>HỆ THỐNG BẾP CANTEEN</h2>
-            <p style={{ margin: '6px 0 0 0', color: '#94a3b8', fontSize: '13px' }}>Đăng nhập dành cho Bếp trưởng & Quản lý</p>
+            <p style={{ margin: '6px 0 0 0', color: '#94a3b8', fontSize: '13px' }}>Đăng nhập dành cho Bếp trưởng & Quản lý & Nhân Viên</p>
           </div>
 
           {error && (
@@ -582,7 +582,7 @@ function AdminView() {
                 boxShadow: '0 6px 20px rgba(2, 132, 199, 0.4)'
               }}
             >
-              🚀 Đăng Nhập Quản Lý
+              🚀 Đăng Nhập Vào Bếp Nhân Viên
             </button>
           </form>
         </div>
