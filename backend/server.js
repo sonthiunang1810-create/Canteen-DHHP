@@ -2,8 +2,6 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
 
 const app = express();
 app.use(cors());
@@ -12,227 +10,118 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// --- KẾT NỐI MYSQL CLOUD (AIVEN) ---
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME || 'defaultdb',
-  port: process.env.DB_PORT || 27914,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  ssl: { rejectUnauthorized: false } // Bắt buộc cho Aiven Cloud
+const staffUsers = [
+  { username: "kitchen", password: "123", role: "kitchen", name: "Nhà Bếp Canteen" },
+  { username: "admin", password: "123", role: "admin", name: "Quản Lý Canteen" }
+];
+
+let studentUsers = [];
+
+let menu = [
+  { id: 1, name: "Cơm tấm sườn nướng", price: 30000, category: "Cơm Tấm", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300", available: true },
+  { id: 2, name: "Cơm tấm sườn bì chả", price: 35000, category: "Cơm Tấm", image: "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=300", available: true },
+  { id: 3, name: "Cơm tấm gà quay xối mỡ", price: 35000, category: "Cơm Tấm", image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=300", available: true },
+  { id: 4, name: "Cơm tấm chả trứng ốp la", price: 25000, category: "Cơm Tấm", image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=300", available: true },
+  { id: 5, name: "Cơm tấm xá xíu đặc biệt", price: 32000, category: "Cơm Tấm", image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300", available: true },
+
+  { id: 6, name: "Bún bò Huế đặc biệt", price: 35000, category: "Bún Bò", image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300", available: true },
+  { id: 7, name: "Bún bò giò heo", price: 40000, category: "Bún Bò", image: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?w=300", available: true },
+  { id: 8, name: "Bún bò tái nạm", price: 35000, category: "Bún Bò", image: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=300", available: true },
+  { id: 9, name: "Bún bò chả cua", price: 32000, category: "Bún Bò", image: "https://images.unsplash.com/photo-1552611052-33e04de081de?w=300", available: true },
+  { id: 10, name: "Bún bò gân bò thập cẩm", price: 42000, category: "Bún Bò", image: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=300", available: true },
+
+  { id: 11, name: "Mì xào hải sản", price: 32000, category: "Mì Xào", image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=300", available: true },
+  { id: 12, name: "Mì xào bò rau cải", price: 30000, category: "Mì Xào", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300", available: true },
+  { id: 13, name: "Mì xào trứng xúc xích", price: 22000, category: "Mì Xào", image: "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=300", available: true },
+  { id: 14, name: "Mì xào giòn thập cẩm", price: 35000, category: "Mì Xào", image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300", available: true },
+  { id: 15, name: "Mì Ý xốt bò bằm (Spaghetti)", price: 30000, category: "Mì Xào", image: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300", available: true },
+
+  { id: 16, name: "Trà sữa Thái xanh", price: 15000, category: "Trà & Đồ Uống", image: "https://images.unsplash.com/photo-1558857563-b371033873b8?w=300", available: true },
+  { id: 17, name: "Trà chanh giã tay", price: 12000, category: "Trà & Đồ Uống", image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=300", available: true },
+  { id: 18, name: "Trà đào cam sả", price: 20000, category: "Trà & Đồ Uống", image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300", available: true },
+  { id: 19, name: "Trà quất mật ong ice", price: 12000, category: "Trà & Đồ Uống", image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=300", available: true },
+  { id: 20, name: "Cà phê sữa đá Sài Gòn", price: 15000, category: "Trà & Đồ Uống", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300", available: true }
+];
+
+let orders = [];
+
+app.post('/api/student/register', (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin!" });
+  const exist = studentUsers.find(s => s.username === username);
+  if (exist) return res.status(400).json({ success: false, message: "Tên tài khoản này đã được đăng ký!" });
+  studentUsers.push({ username, email, password });
+  res.json({ success: true });
 });
 
-// Khởi tạo bảng tự động
-async function initDatabase() {
-  try {
-    const connection = await db.getConnection();
-    console.log('✅ Đã kết nối thành công tới Aiven MySQL Database!');
+app.post('/api/student/login', (req, res) => {
+  const { username, password } = req.body;
+  const student = studentUsers.find(s => s.username === username && s.password === password);
+  if (student) res.json({ success: true, student: { username: student.username, email: student.email } });
+  else res.status(401).json({ success: false, message: "Tên tài khoản hoặc mật khẩu không chính xác!" });
+});
 
-    // 1. Bảng users
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        email VARCHAR(100),
-        name VARCHAR(100),
-        role ENUM('admin', 'kitchen', 'student') DEFAULT 'student'
-      );
-    `);
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = staffUsers.find(u => u.username === username && u.password === password);
+  if (user) res.json({ success: true, user: { name: user.name, role: user.role } });
+  else res.status(401).json({ success: false, message: "Tài khoản hoặc mật khẩu không đúng!" });
+});
 
-    // 2. Bảng menu
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS menu (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        price INT NOT NULL,
-        category VARCHAR(100),
-        image TEXT,
-        is_available BOOLEAN DEFAULT TRUE
-      );
-    `);
+app.get('/api/menu', (req, res) => res.json(menu));
 
-    // 3. Bảng orders
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT,
-        student_name VARCHAR(100),
-        total_price INT NOT NULL,
-        payment_method VARCHAR(50) DEFAULT 'QR',
-        status VARCHAR(50) DEFAULT 'Pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+app.post('/api/menu/toggle', (req, res) => {
+  const { id, available } = req.body;
+  const item = menu.find(m => m.id === id);
+  if (item) {
+    item.available = available;
+    io.emit('menu_updated', menu);
+    res.json({ success: true, menu });
+  } else res.status(404).json({ error: "Không tìm thấy món" });
+});
 
-    // 4. Bảng order_items
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS order_items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        order_id INT,
-        menu_id INT,
-        quantity INT,
-        price INT,
-        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-      );
-    `);
+app.post('/api/orders', (req, res) => {
+  const newOrder = {
+    id: orders.length + 1,
+    studentCode: req.body.studentCode,
+    items: req.body.items,
+    total: req.body.total,
+    paymentMethod: req.body.paymentMethod || "Mã QR / Tiền mặt",
+    table: req.body.table || "Bàn QR",
+    status: "pending", 
+    createdAt: new Date().toLocaleTimeString('vi-VN')
+  };
+  orders.unshift(newOrder);
 
-    // Thêm tài khoản mặc định nếu chưa có
-    const [users] = await connection.query("SELECT * FROM users WHERE username = 'admin'");
-    if (users.length === 0) {
-      await connection.query(`
-        INSERT INTO users (username, password, name, role) VALUES 
-        ('kitchen', '123', 'Nhà Bếp Canteen', 'kitchen'),
-        ('admin', '123', 'Quản lý Canteen', 'admin');
-      `);
-      console.log('✨ Đã tạo tài khoản mặc định (admin/kitchen)');
-    }
+  io.emit('new_order', newOrder);
+  io.emit('sales_update', getSalesStats());
+  res.json({ success: true, order: newOrder });
+});
 
-    connection.release();
-    console.log(' Đã kiểm tra và khởi tạo xong các bảng Database!');
-  } catch (error) {
-    console.error(' Lỗi kết nối hoặc khởi tạo Database:', error.message);
+app.post('/api/orders/toggle-status', (req, res) => {
+  const { id } = req.body;
+  const order = orders.find(o => o.id === id);
+  if (order) {
+    order.status = order.status === 'completed' ? 'pending' : 'completed';
+    io.emit('sales_update', getSalesStats());
+    res.json({ success: true, order });
+  } else {
+    res.status(404).json({ error: "Không tìm thấy đơn hàng" });
   }
+});
+
+// Chỉ tính tổng đơn và doanh thu cho các đơn ĐÃ HOÀN THÀNH (completed)
+function getSalesStats() {
+  const completedOrders = orders.filter(o => o.status === 'completed');
+  return {
+    totalOrders: completedOrders.length,
+    totalRevenue: completedOrders.reduce((sum, o) => sum + o.total, 0),
+    ordersList: orders
+  };
 }
 
-initDatabase();
-
-// --- API AUTH & TÀI KHOẢN ---
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const [rows] = await db.query(
-      'SELECT id, username, role, name, email FROM users WHERE username = ? AND password = ?',
-      [username, password]
-    );
-
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Tài khoản hoặc mật khẩu không chính xác' });
-    }
-
-    res.json({ message: 'Đăng nhập thành công', user: rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/register', async (req, res) => {
-  const { username, email, password, name } = req.body;
-  try {
-    const [existing] = await db.query('SELECT id FROM users WHERE username = ?', [username]);
-    if (existing.length > 0) {
-      return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại' });
-    }
-
-    const [result] = await db.query(
-      'INSERT INTO users (username, email, password, name, role) VALUES (?, ?, ?, ?, "student")',
-      [username, email, password, name || username]
-    );
-
-    res.json({ message: 'Đăng ký tài khoản thành công', userId: result.insertId });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API MENU ---
-app.get('/api/menu', async (req, res) => {
-  try {
-    const [rows] = await db.query('SELECT * FROM menu');
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/menu', async (req, res) => {
-  const { name, price, category, image, is_available } = req.body;
-  try {
-    const [result] = await db.query(
-      'INSERT INTO menu (name, price, category, image, is_available) VALUES (?, ?, ?, ?, ?)',
-      [name, price, category, image, is_available ?? true]
-    );
-
-    const [newItem] = await db.query('SELECT * FROM menu WHERE id = ?', [result.insertId]);
-    io.emit('menu_updated');
-    res.json(newItem[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.patch('/api/menu/:id', async (req, res) => {
-  const { id } = req.params;
-  const { is_available } = req.body;
-  try {
-    await db.query('UPDATE menu SET is_available = ? WHERE id = ?', [is_available, id]);
-    io.emit('menu_updated');
-    res.json({ message: 'Cập nhật trạng thái món thành công' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API ORDERS ---
-app.post('/api/orders', async (req, res) => {
-  const { user_id, student_name, items, total_price, payment_method } = req.body;
-  try {
-    const [orderResult] = await db.query(
-      'INSERT INTO orders (user_id, student_name, total_price, payment_method, status) VALUES (?, ?, ?, ?, "Pending")',
-      [user_id, student_name, total_price, payment_method || 'QR']
-    );
-
-    const orderId = orderResult.insertId;
-
-    for (const item of items) {
-      await db.query(
-        'INSERT INTO order_items (order_id, menu_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderId, item.id, item.quantity, item.price]
-      );
-    }
-
-    const newOrder = { id: orderId, user_id, student_name, items, total_price, status: 'Pending', created_at: new Date() };
-    io.emit('new_order', newOrder);
-
-    res.json({ message: 'Đặt món thành công', order: newOrder });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/orders', async (req, res) => {
-  try {
-    const [orders] = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.patch('/api/orders/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  try {
-    await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
-    io.emit('order_status_changed', { orderId: id, status });
-    res.json({ message: 'Cập nhật trạng thái đơn hàng thành công' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- REALTIME SOCKET.IO ---
 io.on('connection', (socket) => {
-  console.log('⚡ Client kết nối Socket.IO:', socket.id);
-  socket.on('disconnect', () => {
-    console.log('🔥 Client ngắt kết nối:', socket.id);
-  });
+  socket.emit('sales_update', getSalesStats());
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại cổng http://localhost:${PORT}`);
-});
+server.listen(5000, () => console.log('Backend running on port 5000'));

@@ -7,7 +7,6 @@ const BACKEND_URL = 'https://canteen-dhhp.onrender.com';
 const socket = io(BACKEND_URL);
 
 function StudentView() {
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -45,19 +44,12 @@ function StudentView() {
     axios.post(`${BACKEND_URL}/api/student/login`, { username, password })
       .then(res => {
         setCurrentStudent(res.data.student);
-        setShowAuthModal(false);
         setErrorMsg('');
       })
       .catch(err => setErrorMsg(err.response?.data?.message || "Lỗi đăng nhập! Tên tài khoản hoặc mật khẩu không đúng."));
   };
 
   const addToCart = (item) => {
-    // Nếu chưa đăng nhập -> Mở popup đăng nhập
-    if (!currentStudent) {
-      setShowAuthModal(true);
-      return;
-    }
-
     setCart(prev => {
       const exist = prev.find(x => x.id === item.id);
       return exist 
@@ -108,22 +100,85 @@ function StudentView() {
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
+  if (!currentStudent) {
+    return (
+      <div style={{ 
+          backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.7)), url('/canteen-bg.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          minHeight: '100vh',
+          width: '100vw',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif"
+        }}>
+        <div style={{ maxWidth: '420px', width: '90%', background: 'rgba(255, 255, 255, 0.96)', backdropFilter: 'blur(16px)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', padding: '30px 20px', textAlign: 'center', color: '#fff' }}>
+            <img src="/logo-dhhp.png" alt="Logo DHHP" style={{ width: '76px', height: '76px', borderRadius: '50%', background: '#fff', padding: '5px', marginBottom: '10px', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }} />
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', letterSpacing: '0.5px' }}>CANTEEN ĐẠI HỌC HẢI PHÒNG</h2>
+            <p style={{ margin: '6px 0 0 0', fontSize: '13px', opacity: 0.9 }}>Đặt món nhanh chóng • Nhận món tận bàn</p>
+          </div>
+
+          <div style={{ padding: '28px 32px' }}>
+            <h3 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#0f172a', fontSize: '17px', fontWeight: '700' }}>
+              {isRegister ? '📝 Đăng Ký Tài Khoản Sinh Viên' : '🔑 Đăng Nhập Hệ Thống'}
+            </h3>
+
+            {errorMsg && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '18px', textAlign: 'center', fontWeight: '500' }}>⚠️ {errorMsg}</div>}
+
+            {isRegister ? (
+              <form onSubmit={handleRegister}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>TÊN TÀI KHOẢN</label>
+                  <input type="text" placeholder="Nhập tên tài khoản hoặc MSSV" value={username} onChange={e => setUsername(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>EMAIL</label>
+                  <input type="email" placeholder="Nhập địa chỉ email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ marginBottom: '22px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>MẬT KHẨU</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '12px 42px 12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>{showPassword ? "👁️" : "🙈"}</button>
+                  </div>
+                </div>
+                <button type="submit" style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)' }}>Tạo Tài Khoản</button>
+                <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#64748b' }}>Đã có tài khoản? <span onClick={() => { setIsRegister(false); setErrorMsg(''); }} style={{ color: '#0284c7', cursor: 'pointer', fontWeight: 'bold' }}>Đăng nhập</span></p>
+              </form>
+            ) : (
+              <form onSubmit={handleLogin}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>TÊN TÀI KHOẢN</label>
+                  <input type="text" placeholder="Nhập tên tài khoản hoặc MSSV" value={username} onChange={e => setUsername(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ marginBottom: '22px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>MẬT KHẨU</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '12px 42px 12px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>{showPassword ? "👁️" : "🙈"}</button>
+                  </div>
+                </div>
+                <button type="submit" style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #ea580c, #c2410c)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)' }}>Vào Gọi Món Nhanh ➔</button>
+                <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#64748b' }}>Chưa có tài khoản? <span onClick={() => { setIsRegister(true); setErrorMsg(''); }} style={{ color: '#ea580c', cursor: 'pointer', fontWeight: 'bold' }}>Đăng ký ngay</span></p>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <img src="/logo-dhhp.png" alt="Logo DHHP" style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid #0284c7' }} />
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', color: '#0f172a', fontWeight: '800', letterSpacing: '0.3px' }}>CANTEEN ĐẠI HỌC HẢI PHÒNG</h3>
-              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-                {currentStudent ? (
-                  <>Tài khoản sinh viên: <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{currentStudent.username}</span></>
-                ) : (
-                  <span style={{ color: '#ea580c', fontWeight: 'bold' }}>Khách xem thực đơn</span>
-                )}
-              </p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Tài khoản sinh viên: <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{currentStudent.username}</span></p>
             </div>
           </div>
 
@@ -137,21 +192,13 @@ function StudentView() {
             />
           </div>
 
-          {currentStudent ? (
-            <button onClick={() => { setCurrentStudent(null); setCart([]); }} style={{ padding: '8px 18px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', transition: 'all 0.2s' }}>
-              🚪 Đăng xuất
-            </button>
-          ) : (
-            <button onClick={() => setShowAuthModal(true)} style={{ padding: '8px 18px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-              🔑 Đăng nhập / Đăng ký
-            </button>
-          )}
+          <button onClick={() => setCurrentStudent(null)} style={{ padding: '8px 18px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', transition: 'all 0.2s' }}>
+            🚪 Đăng xuất
+          </button>
         </div>
       </div>
 
-      {/* Main Container */}
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
-        {/* Banner */}
         <div style={{ 
           backgroundImage: `linear-gradient(90deg, rgba(15, 23, 42, 0.88) 0%, rgba(15, 23, 42, 0.4) 100%), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1400')`,
           backgroundSize: 'cover',
@@ -162,7 +209,7 @@ function StudentView() {
           marginBottom: '28px', 
           boxShadow: '0 12px 30px -5px rgba(15, 23, 42, 0.25)', 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          justify: 'space-between', 
           alignItems: 'center' 
         }}>
           <div>
@@ -185,7 +232,6 @@ function StudentView() {
           </div>
         </div>
 
-        {/* Categories Bar */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '28px', overflowX: 'auto', paddingBottom: '4px' }}>
           {categories.map(cat => (
             <button
@@ -213,9 +259,7 @@ function StudentView() {
           ))}
         </div>
 
-        {/* Menu & Cart Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '28px' }}>
-          {/* Menu Items */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '19px', fontWeight: '800' }}>
@@ -260,7 +304,6 @@ function StudentView() {
             </div>
           </div>
 
-          {/* Cart Section */}
           <div>
             <div style={{ background: '#fff', borderRadius: '24px', padding: '22px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.06)', position: 'sticky', top: '90px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
@@ -306,13 +349,7 @@ function StudentView() {
 
                 <button 
                   disabled={cart.length === 0}
-                  onClick={() => {
-                    if (!currentStudent) {
-                      setShowAuthModal(true);
-                    } else {
-                      setShowCheckoutModal(true);
-                    }
-                  }} 
+                  onClick={() => setShowCheckoutModal(true)} 
                   style={{
                     width: '100%',
                     padding: '15px',
@@ -334,66 +371,6 @@ function StudentView() {
         </div>
       </div>
 
-      {/* Auth Modal (Popup Đăng nhập / Đăng ký) */}
-      {showAuthModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ maxWidth: '420px', width: '90%', background: '#fff', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', padding: '24px 20px', textAlign: 'center', color: '#fff', position: 'relative' }}>
-              <button onClick={() => setShowAuthModal(false)} style={{ position: 'absolute', right: '16px', top: '16px', background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>✖</button>
-              <img src="/logo-dhhp.png" alt="Logo DHHP" style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#fff', padding: '4px', marginBottom: '8px' }} />
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>CANTEEN ĐẠI HỌC HẢI PHÒNG</h3>
-            </div>
-
-            <div style={{ padding: '24px 28px' }}>
-              <h4 style={{ margin: '0 0 16px 0', textAlign: 'center', color: '#0f172a', fontSize: '16px', fontWeight: '700' }}>
-                {isRegister ? '📝 Đăng Ký Tài Khoản Sinh Viên' : '🔑 Đăng Nhập Để Tiếp Tục'}
-              </h4>
-
-              {errorMsg && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px', textAlign: 'center' }}>⚠️ {errorMsg}</div>}
-
-              {isRegister ? (
-                <form onSubmit={handleRegister}>
-                  <div style={{ marginBottom: '14px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>TÊN TÀI KHOẢN</label>
-                    <input type="text" placeholder="Nhập tên tài khoản hoặc MSSV" value={username} onChange={e => setUsername(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div style={{ marginBottom: '14px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>EMAIL</label>
-                    <input type="email" placeholder="Nhập địa chỉ email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div style={{ marginBottom: '18px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>MẬT KHẨU</label>
-                    <div style={{ position: 'relative' }}>
-                      <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '10px 38px 10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{showPassword ? "👁️" : "🙈"}</button>
-                    </div>
-                  </div>
-                  <button type="submit" style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>Tạo Tài Khoản</button>
-                  <p style={{ textAlign: 'center', fontSize: '12px', marginTop: '16px', color: '#64748b' }}>Đã có tài khoản? <span onClick={() => { setIsRegister(false); setErrorMsg(''); }} style={{ color: '#0284c7', cursor: 'pointer', fontWeight: 'bold' }}>Đăng nhập</span></p>
-                </form>
-              ) : (
-                <form onSubmit={handleLogin}>
-                  <div style={{ marginBottom: '14px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>TÊN TÀI KHOẢN</label>
-                    <input type="text" placeholder="Nhập tên tài khoản hoặc MSSV" value={username} onChange={e => setUsername(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div style={{ marginBottom: '18px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>MẬT KHẨU</label>
-                    <div style={{ position: 'relative' }}>
-                      <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '10px 38px 10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{showPassword ? "👁️" : "🙈"}</button>
-                    </div>
-                  </div>
-                  <button type="submit" style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #ea580c, #c2410c)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>Vào Gọi Món Nhanh ➔</button>
-                  <p style={{ textAlign: 'center', fontSize: '12px', marginTop: '16px', color: '#64748b' }}>Chưa có tài khoản? <span onClick={() => { setIsRegister(true); setErrorMsg(''); }} style={{ color: '#ea580c', cursor: 'pointer', fontWeight: 'bold' }}>Đăng ký ngay</span></p>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QR Modal */}
       {showCheckoutModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', width: '90%', maxWidth: '420px', borderRadius: '24px', padding: '28px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)' }}>
@@ -602,10 +579,10 @@ function AdminView() {
                 fontWeight: 'bold', 
                 cursor: 'pointer', 
                 fontSize: '15px',
-                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                boxShadow: '0 6px 20px rgba(2, 132, 199, 0.4)'
               }}
             >
-              Đăng Nhập Quản Lý
+              🚀 Đăng Nhập Vào Bếp Nhân Viên
             </button>
           </form>
         </div>
@@ -614,73 +591,126 @@ function AdminView() {
   }
 
   return (
-    <div style={{ backgroundColor: '#0f172a', color: '#f8fafc', minHeight: '100vh', padding: '24px', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', borderBottom: '1px solid #334155', paddingBottom: '16px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '24px', color: '#38bdf8' }}>👨‍🍳 QUẢN LÝ BẾP CANTEEN</h2>
-          <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Theo dõi đơn hàng thời gian thực & cập nhật thực đơn</p>
-        </div>
-        <button onClick={() => setIsLogged(false)} style={{ padding: '10px 20px', background: '#334155', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
-          🚪 Đăng xuất Bếp
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '28px' }}>
-        <div style={{ background: '#1e293b', padding: '20px', borderRadius: '16px', border: '1px solid #334155' }}>
-          <div style={{ color: '#94a3b8', fontSize: '13px' }}>TỔNG SỐ ĐƠN HÀNG</div>
-          <div style={{ fontSize: '28px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>{stats.totalOrders} đơn</div>
-        </div>
-        <div style={{ background: '#1e293b', padding: '20px', borderRadius: '16px', border: '1px solid #334155' }}>
-          <div style={{ color: '#94a3b8', fontSize: '13px' }}>TỔNG DOANH THU</div>
-          <div style={{ fontSize: '28px', fontWeight: '800', color: '#4ade80', marginTop: '6px' }}>{(stats.totalRevenue || 0).toLocaleString()} VNĐ</div>
+    <div style={{ backgroundColor: '#0f172a', color: '#f8fafc', minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>👨‍🍳</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#f8fafc', fontWeight: '800' }}>DASHBOARD QUẢN LÝ BẾP</h3>
+              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Hệ thống theo dõi đơn hàng & Menu Realtime</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsLogged(false)} 
+            style={{ padding: '8px 18px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}
+          >
+            🚪 Đăng xuất
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
-        <div>
-          <h3 style={{ color: '#f1f5f9', marginBottom: '16px' }}>📦 Đơn Hàng Cần Chế Biến</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {stats.ordersList && stats.ordersList.length === 0 ? (
-              <p style={{ color: '#64748b' }}>Chưa có đơn hàng nào.</p>
-            ) : (
-              stats.ordersList?.map(order => (
-                <div key={order.id} style={{ background: '#1e293b', padding: '16px', borderRadius: '14px', border: '1px solid #334155' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>{order.studentCode}</span>
-                    <span style={{ background: order.status === 'Completed' ? '#166534' : '#854d0e', color: '#fff', padding: '2px 8px', borderRadius: '6px', fontSize: '12px' }}>
-                      {order.status === 'Completed' ? 'Hoàn thành' : 'Đang xử lý'}
-                    </span>
-                  </div>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#cbd5e1' }}>Món: {order.items}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                    <strong style={{ color: '#4ade80' }}>{order.total?.toLocaleString()} VNĐ</strong>
-                    <button onClick={() => toggleOrderStatus(order.id)} style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
-                      Đổi trạng thái
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', padding: '20px 24px', borderRadius: '20px', border: '1px solid #334155', boxShadow: '0 8px 20px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '54px', height: '54px', background: 'rgba(234, 88, 12, 0.15)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' }}>🔔</div>
+            <div>
+              <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '600' }}>Đơn đã hoàn thành</span>
+              <h2 style={{ margin: '4px 0 0 0', color: '#f97316', fontSize: '28px', fontWeight: '800' }}>{stats.totalOrders} đơn</h2>
+            </div>
+          </div>
+
+          <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', padding: '20px 24px', borderRadius: '20px', border: '1px solid #334155', boxShadow: '0 8px 20px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '54px', height: '54px', background: 'rgba(22, 163, 74, 0.15)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' }}>💰</div>
+            <div>
+              <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '600' }}>Doanh thu (Đã xong)</span>
+              <h2 style={{ margin: '4px 0 0 0', color: '#22c55e', fontSize: '28px', fontWeight: '800' }}>{stats.totalRevenue.toLocaleString()} VNĐ</h2>
+            </div>
           </div>
         </div>
 
-        <div>
-          <h3 style={{ color: '#f1f5f9', marginBottom: '16px' }}>🍱 Trạng Thái Món Ăn</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {menu.map(item => (
-              <div key={item.id} style={{ background: '#1e293b', padding: '12px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>{item.price?.toLocaleString()} VNĐ</div>
-                </div>
-                <button 
-                  onClick={() => toggleAvailable(item.id, item.available)}
-                  style={{ padding: '6px 14px', background: item.available ? '#22c55e' : '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                >
-                  {item.available ? 'Đang Bán' : 'Hết Hàng'}
-                </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
+          <div style={{ background: '#1e293b', padding: '22px', borderRadius: '24px', border: '1px solid #334155', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ margin: '0 0 18px 0', color: '#f8fafc', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📋 Đơn Hàng Mới Nhận (Realtime)
+            </h3>
+            {stats.ordersList.length === 0 ? (
+              <p style={{ color: '#64748b', textAlign: 'center', padding: '30px 0' }}>Chưa có đơn hàng nào trong phiên làm việc</p>
+            ) : (
+              <div style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
+                {stats.ordersList.map(order => (
+                  <div key={order.id} style={{ background: '#0f172a', padding: '14px 16px', borderRadius: '16px', marginBottom: '12px', border: '1px solid #334155' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#38bdf8', fontSize: '14px' }}>
+                        Đơn #{order.id} • {order.studentCode}
+                      </span>
+                      <span style={{ background: '#334155', color: '#f97316', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                        {order.createdAt}
+                      </span>
+                    </div>
+                    {order.items.map((it, i) => (
+                      <div key={i} style={{ fontSize: '13px', color: '#cbd5e1', margin: '3px 0' }}>• {it.name} x <strong style={{ color: '#fff' }}>{it.qty}</strong></div>
+                    ))}
+                    <div style={{ borderTop: '1px dashed #334155', marginTop: '10px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Hình thức: <strong style={{ color: '#4ade80' }}>{order.paymentMethod}</strong></div>
+                        <strong style={{ color: '#f97316', fontSize: '16px' }}>{order.total.toLocaleString()} VNĐ</strong>
+                      </div>
+
+                      <button 
+                        onClick={() => toggleOrderStatus(order.id)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          background: order.status === 'completed' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 88, 12, 0.2)',
+                          color: order.status === 'completed' ? '#4ade80' : '#f97316',
+                          border: order.status === 'completed' ? '1px solid #22c55e' : '1px solid #f97316',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        {order.status === 'completed' ? '✅ Đã xong' : '⏳ Chờ làm'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+
+          <div style={{ background: '#1e293b', padding: '22px', borderRadius: '24px', border: '1px solid #334155', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ margin: '0 0 18px 0', color: '#f8fafc', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🛠 Trạng Thái Món Trong Ngày
+            </h3>
+            <div style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
+              {menu.map(item => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#0f172a', borderRadius: '12px', marginBottom: '8px', border: '1px solid #334155' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img src={item.image} alt={item.name} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>{item.name}</div>
+                      <div style={{ fontSize: '12px', color: '#ea580c' }}>{item.price.toLocaleString()} VNĐ</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => toggleAvailable(item.id, item.available)}
+                    style={{ 
+                      padding: '6px 14px', 
+                      borderRadius: '8px', 
+                      background: item.available ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
+                      color: item.available ? '#4ade80' : '#fca5a5', 
+                      border: item.available ? '1px solid #22c55e' : '1px solid #ef4444',
+                      fontWeight: 'bold', 
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    {item.available ? '🟢 Đang bán' : '🔴 Hết món'}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
